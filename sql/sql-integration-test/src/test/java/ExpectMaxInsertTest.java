@@ -12,11 +12,15 @@
 import org.junit.Test;
 import org.junit.experimental.results.PrintableResult;
 import org.junit.runner.RunWith;
+import org.quickperf.annotation.DisableQuickPerf;
 import org.quickperf.junit4.QuickPerfJUnitRunner;
 import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.ExpectMaxInsert;
+import org.quickperf.sql.annotation.ExpectMaxQueryExecutionTime;
 
 import javax.persistence.EntityManager;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,6 +30,7 @@ public class ExpectMaxInsertTest {
     public static class AClassHavingAMethodAnnotatedWithExpectMaxInsert extends SqlTestBase {
 
         @Test
+        @ExpectMaxQueryExecutionTime(value = 2, unit = TimeUnit.NANOSECONDS)
         @ExpectMaxInsert(0)
         public void execute_one_insert_but_no_insert_expected() {
             EntityManager em = emf.createEntityManager();
@@ -41,7 +46,7 @@ public class ExpectMaxInsertTest {
         }
 
     }
-
+    @DisableQuickPerf
     @Test public void
     should_fail_if_the_number_of_sql_statements_is_greater_than_the_number_expected_with_annotation_on_method() {
 
