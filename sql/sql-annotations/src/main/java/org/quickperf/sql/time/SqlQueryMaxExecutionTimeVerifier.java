@@ -16,6 +16,8 @@ import org.quickperf.issue.VerifiablePerformanceIssue;
 import org.quickperf.sql.annotation.ExpectMaxQueryExecutionTime;
 import org.quickperf.time.ExecutionTime;
 
+import java.util.concurrent.TimeUnit;
+
 public class SqlQueryMaxExecutionTimeVerifier implements VerifiablePerformanceIssue<ExpectMaxQueryExecutionTime, ExecutionTime> {
 	
 	public static final SqlQueryMaxExecutionTimeVerifier INSTANCE = new SqlQueryMaxExecutionTimeVerifier();
@@ -25,17 +27,21 @@ public class SqlQueryMaxExecutionTimeVerifier implements VerifiablePerformanceIs
 	@Override
 	public PerfIssue verifyPerfIssue(ExpectMaxQueryExecutionTime annotation, ExecutionTime measure) {
 		
-		ExecutionTime maxExpectedSqlExecutionTime = new ExecutionTime(annotation.value(), annotation.unit());
+		ExecutionTime maxExpectedSqlExecutionTime = new ExecutionTime(annotation.thresholdInMilliSeconds(), TimeUnit.MILLISECONDS);
 		
 		if(measure.isGreaterThan(maxExpectedSqlExecutionTime)) {
-
-			String message = "At least one request exceeds the max expected query execution time <" + maxExpectedSqlExecutionTime + ">.";
-
-			return new PerfIssue(message);
-
+			return buildPerfIssue(measure, maxExpectedSqlExecutionTime);
 		}
 		
 		return PerfIssue.NONE;
+	}
+
+	private PerfIssue buildPerfIssue(ExecutionTime effectiveExecutionTime, ExecutionTime maxExecutionTime) {
+		String description =
+				"At least one request exceeds the max expected query execution time:"
+						+ "\n	Effective execution time <" + effectiveExecutionTime.toString() + ">"
+						+ "\n	Expected execution time <" + maxExecutionTime.toString() + ">";
+		return new PerfIssue(description);
 	}
 
 }
