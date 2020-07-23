@@ -38,9 +38,8 @@ public class SqlQueryMaxExecutionTimeVerifier implements VerifiablePerformanceIs
 
 	private PerfIssue buildPerfIssue(ExecutionTime effectiveExecutionTime, ExecutionTime maxExecutionTime) {
 		String description =
-				"At least one request exceeds the max expected query execution time:"
-						+ "\n	Effective execution time <" + effectiveExecutionTime.toString() + ">"
-						+ "\n	Expected execution time <" + maxExecutionTime.toString() + ">";
+				"Query execution time expected to be less than <" +maxExecutionTime.toString() + ">"
+						+ "\n	At least one query has a greater execution time. The greater query execution time is <" + effectiveExecutionTime.toString() + ">";
 		return new PerfIssue(description);
 	}
 
