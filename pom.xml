@@ -55,6 +55,7 @@
         <javadoc-sourceFileIncludes>**\/\*.java</javadoc-sourceFileIncludes>
         <project.build.outputTimestamp>2020-06-20T22:19:36Z</project.build.outputTimestamp>
         <jar.skipIfEmpty>true</jar.skipIfEmpty>
+        <limitQuickPerfSqlInfoOnConsole>false</limitQuickPerfSqlInfoOnConsole>
     </properties>
 
     <dependencies>
@@ -110,6 +111,15 @@
                     <threadCount>5</threadCount>
                     <argLine>
                     </argLine>
+<!--                    <systemPropertyVariables>-->
+<!--                        <propertyName>limitQuickPerfSqlInfoOnConsole</propertyName>-->
+<!--                    </systemPropertyVariables>-->
+                    <systemProperties>
+                        <property>
+                            <name>limitQuickPerfSqlInfoOnConsole</name>
+                            <value>false</value>
+                        </property>
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>

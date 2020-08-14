@@ -154,9 +154,9 @@ public class ExpectSelectTest {
         assertThat(printableResult.failureCount()).isOne();
 
         String testResult = printableResult.toString();
-        assertThat(testResult).contains("You may think that <1> select statement was sent to the database")
-                              .contains("server roundtrips")
-                              .contains("N+1");
+        assertThat(testResult).doesNotContain("You may think that <1> select statement was sent to the database")
+                              .doesNotContain("server roundtrips")
+                              .doesNotContain("N+1");
 
     }
 
