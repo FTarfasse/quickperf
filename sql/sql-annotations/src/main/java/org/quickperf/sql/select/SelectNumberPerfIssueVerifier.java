@@ -11,6 +11,7 @@
 
 package org.quickperf.sql.select;
 
+import org.quickperf.SystemProperties;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
 import org.quickperf.sql.annotation.ExpectSelect;
@@ -43,6 +44,11 @@ public class SelectNumberPerfIssueVerifier implements VerifiablePerformanceIssue
     }
 
     private PerfIssue buildPerfIssue(Count executedSelectNumber, Count expectedSelectNumber, SelectAnalysis selectAnalysis) {
+
+        if(!SystemProperties.SIMPLIFIED_SQL_DISPLAY.evaluate()) {
+            String description = buildBaseDescription(executedSelectNumber, expectedSelectNumber);
+            return new PerfIssue(description);
+        }
 
         if(   executedSelectNumber.isGreaterThan(expectedSelectNumber)
            && selectAnalysis.hasSameSelectTypesWithDifferentParamValues()

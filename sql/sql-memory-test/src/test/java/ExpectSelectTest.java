@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.experimental.results.PrintableResult;
 import org.junit.runner.RunWith;
 import org.quickperf.junit4.QuickPerfJUnitRunner;
+import org.quickperf.jvm.annotations.JvmOptions;
 import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.ExpectSelect;
 
@@ -140,7 +141,7 @@ public class ExpectSelectTest {
         }
 
     }
-
+//    @JvmOptions(" -DlimitQuickPerfSqlInfoOnConsole=true")
     @Test public void
     should_display_round_trip_and_n_plus_one_select_message_if_two_same_select_types_with_different_parameter_values() {
 
@@ -154,9 +155,10 @@ public class ExpectSelectTest {
         assertThat(printableResult.failureCount()).isOne();
 
         String testResult = printableResult.toString();
-        assertThat(testResult).contains("You may think that <1> select statement was sent to the database")
-                              .contains("server roundtrips")
-                              .contains("N+1");
+        assertThat(testResult).doesNotContain("You may think that <1> select statement was sent to the database")
+                              .doesNotContain("server roundtrips")
+                              .doesNotContain("N+1")
+                              .doesNotContain("SQL EXECUTIONS");
 
     }
 
