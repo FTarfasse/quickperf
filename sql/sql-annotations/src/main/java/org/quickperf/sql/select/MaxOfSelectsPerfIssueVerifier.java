@@ -11,6 +11,7 @@
 
 package org.quickperf.sql.select;
 
+import org.quickperf.SystemProperties;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
 import org.quickperf.sql.annotation.ExpectMaxSelect;
@@ -44,7 +45,7 @@ public class MaxOfSelectsPerfIssueVerifier implements VerifiablePerformanceIssue
 
     private PerfIssue buildPerfIssue(Count measuredCount, Count expectedCount, SelectAnalysis selectAnalysis) {
 
-        if(selectAnalysis.hasSameSelectTypesWithDifferentParamValues()) {
+        if(!SystemProperties.SIMPLIFIED_SQL_DISPLAY.evaluate() && selectAnalysis.hasSameSelectTypesWithDifferentParamValues()) {
             String description = buildDescriptionWithRoundTripsAndPossiblyNPlusOneSelect(measuredCount, expectedCount);
             return new PerfIssue(description);
         }

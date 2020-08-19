@@ -11,6 +11,7 @@
 
 package org.quickperf.sql.select;
 
+import org.quickperf.SystemProperties;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
 import org.quickperf.sql.annotation.DisableSameSelectTypesWithDifferentParamValues;
@@ -31,30 +32,49 @@ public class HasSameSelectTypesWithDiffParamValuesVerifier implements Verifiable
                                    , SelectAnalysis selectAnalysis) {
 
         if(selectAnalysis.hasSameSelectTypesWithDifferentParamValues()) {
-            String description = "Same SELECT types with different parameter values"
-                                + System.lineSeparator()
-                                + System.lineSeparator()
-                                + JdbcSuggestion.SERVER_ROUND_TRIPS.getMessage();
-
-            if(SqlFrameworksInClassPath.INSTANCE.containsHibernate()) {
-                String nPlusOneSelectMessage = HibernateSuggestion.N_PLUS_ONE_SELECT
-                                              .getMessage();
-                description += System.lineSeparator()
-                             + nPlusOneSelectMessage;
-            }
-
-            if(SqlFrameworksInClassPath.INSTANCE.containsMicronaut()) {
-                String micronautNPlusOneSelectMessage = MicronautSuggestion.N_PLUS_ONE_SELECT
-                        .getMessage();
-                description += System.lineSeparator() + micronautNPlusOneSelectMessage;
-            }
-
-            return new PerfIssue(description);
-
+            return buildPerfIssue(selectAnalysis);
         }
 
         return PerfIssue.NONE;
 
+    }
+
+    private PerfIssue buildPerfIssue(SelectAnalysis selectAnalysis) {
+
+        if(!SystemProperties.SIMPLIFIED_SQL_DISPLAY.evaluate()) {
+            String description = buildDescriptionWithRoundTripsAndPossiblyNPlusOneSelect();
+            return new PerfIssue(description);
+        }
+
+        String baseDescription = buildBaseDescription();
+        return new PerfIssue(baseDescription);
+    }
+
+    private String buildBaseDescription() {
+        return "Same SELECT types with different parameter values";
+    }
+
+    private String buildDescriptionWithRoundTripsAndPossiblyNPlusOneSelect() {
+
+        String description = buildBaseDescription()
+                + System.lineSeparator()
+                + System.lineSeparator()
+                + JdbcSuggestion.SERVER_ROUND_TRIPS.getMessage();
+
+        if(SqlFrameworksInClassPath.INSTANCE.containsHibernate()) {
+            String nPlusOneSelectMessage = HibernateSuggestion.N_PLUS_ONE_SELECT
+                    .getMessage();
+            description += System.lineSeparator()
+                    + nPlusOneSelectMessage;
+        }
+
+        if(SqlFrameworksInClassPath.INSTANCE.containsMicronaut()) {
+            String micronautNPlusOneSelectMessage = MicronautSuggestion.N_PLUS_ONE_SELECT
+                    .getMessage();
+            description += System.lineSeparator() + micronautNPlusOneSelectMessage;
+        }
+
+        return description;
     }
 
 }
