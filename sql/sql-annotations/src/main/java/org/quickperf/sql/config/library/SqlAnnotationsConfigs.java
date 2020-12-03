@@ -23,9 +23,7 @@ import org.quickperf.sql.delete.MaxOfDeletesPerfIssueVerifier;
 import org.quickperf.sql.delete.NumberOfSqlDeletePerfIssueVerifier;
 import org.quickperf.sql.display.DisplaySqlOfTestMethodBodyRecorder;
 import org.quickperf.sql.display.DisplaySqlRecorder;
-import org.quickperf.sql.execution.JdbcQueryExecutionVerifier;
-import org.quickperf.sql.execution.MaxJdbcQueryExecutionVerifier;
-import org.quickperf.sql.execution.SqlAnalysisExtractor;
+import org.quickperf.sql.execution.*;
 import org.quickperf.sql.insert.InsertCountMeasureExtractor;
 import org.quickperf.sql.insert.InsertNumberPerfIssueVerifier;
 import org.quickperf.sql.insert.MaxOfInsertsPerfIssueVerifier;
@@ -208,5 +206,12 @@ class SqlAnnotationsConfigs {
             		.perfMeasureExtractor(DeleteCountMeasureExtractor.INSTANCE)
             		.perfIssueVerifier(MaxOfDeletesPerfIssueVerifier.INSTANCE)
             		.build(ExpectMaxDelete.class);
+
+    	static final AnnotationConfig ANALYZE_SQL = new AnnotationConfig.Builder()
+					 .perfRecorderClass(PersistenceSqlRecorder.class)
+	  				 .perfMeasureExtractor(SqlAnalysisExtractor.INSTANCE)
+	  				 .perfIssueVerifier(AnalyzeSqlVerifier.INSTANCE)
+	  				 .build(AnalyzeSql.class);
+
 
 }

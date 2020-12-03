@@ -382,4 +382,15 @@ public class SqlAnnotationBuilder {
         };
     }
 
+    /**
+     *Allows to build {@link org.quickperf.sql.annotation.AnalyzeSql} annotation
+     */
+    public static AnalyzeSql analyzeSql(){
+        return new AnalyzeSql(){
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return AnalyzeSql.class;
+            }
+        };
+    }
 }
