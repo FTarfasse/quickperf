@@ -6,6 +6,7 @@ import org.quickperf.junit4.QuickPerfJUnitRunner;
 import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.AnalyzeSql;
 
+import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 public class SqlAnalyzeTest {
@@ -16,7 +17,8 @@ public class SqlAnalyzeTest {
 
         @Test
         public void select() {
-            Query query = emf.createEntityManager().createQuery("FROM " + Book.class.getCanonicalName());
+            EntityManager em = emf.createEntityManager();
+            Query query = em.createQuery("FROM " + Book.class.getCanonicalName());
             query.getResultList();
         }
 
@@ -89,8 +91,8 @@ public class SqlAnalyzeTest {
         PrintableResult result = PrintableResult.testResult(classUnderTest);
 
         // THEN
-       Assertions.assertThat(result.toString())
-                 .contains("1 select detected");
+        Assertions.assertThat(result.toString())
+                .contains("1 select detected");
     }
 
 }
