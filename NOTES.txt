@@ -1,0 +1,52 @@
+CLASSES INTERESSANTES:
+DataSourceQuickPerListener
+SqlAnalysis / utilisée dans les verifiers batch
+SqlAnalysisExtractor
+SqlConfigLoader
+SqlStatementPerfIssueBuilder / FOR STATEMENT GENERATION
+TTDDYY / ConnectionInfo (commit et roolback) pour DataSourceQuickPerfListener
+SqlStatementPerfIssueBuilder / genere les messages d alertes habituels
+StringWidthAdapter / pour génération colonnes rapport
+
+VERIFIERS:
+SqlQueryMaxExecutionTimeVerifier / EXECUTION
+SqlStatementBatchVerifier        / BATCH
+
+QUESTIONS:
+SqlMemoryRepository vs SqlFileRepository ? => SqlRepositoryFactory
+SQLexecutions, pourquoi une Deque ?
+Comment utiliser l'AnnotationConfig avec tant de verifier déjà existants ? Faire un nouveau verifier générique ? OUI
+
+REPORT:
+                         |    ttddyy                            |      QuickPerf                            |
+Batch                    |                                      |                                           |
+    bool                 |   ExecutionInfo                      |   SqlExecution.executionInfo.isBatch      |
+    size                 |   ExecutionInfo                      |   SqlExecution.executionInfo.batchSize    |
+Query                    |                                      |                                           |
+    Type                 |   QueryType, QueryInfo, QueryCount ? |   SqlExecution                            |
+    Number               |   ExecutionInfo.                     |   SqlExecutionS                           |
+    Execution time       |   ExecutionInfo.elapsedTime          |   SqlExecution                            |
+    Number of  rows      |   ExecutionInfo.result               |   SqlExecution                            |
+    Number of columns    |   ExecutionInfo.result               |   SqlExecution                            |
+Commit                   |                                      |                                           |
+    Number               |   ConnectionInfo                     |   modifier PersistenceSqlRecorder         |
+Rollback                 |                                      |                                           |
+    Number               |   ConnectionInfo                     |   modifier PersistenceSqlRecorder         |
+Datasource               |                                      |                                           |
+    Name                 |   ExecutionInfo.dataSourceName       |   SqlExecution                            |
+    Connection closed    |   ExecutionInfo.                     |   SqlExecution                            |
+
+TODO:
+1. ANNOTATION class                         | OK
+2. TEST class                               | OK
+3. EXTRACTOR                                | OK SelectAnalysisExtractor or SqlAnalysisExtractor
+4. VERIFIER (qui gèrera juste l affichage)  | MaxOfSelectsPerfIssueVerifier
+5. Create method AnnotationConfig           | OK
+6. Create method SqlConfigLoader            | OK
+7. Create method SqlAnnotationBuilder       | OK
+
+Attention, une PerfIssue par Annotation
+
+Solution 1: Recorder + Verifier + Extractor
+
+Solution 2: Recorder
