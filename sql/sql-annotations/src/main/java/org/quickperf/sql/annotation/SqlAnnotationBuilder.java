@@ -11,6 +11,10 @@
 
 package org.quickperf.sql.annotation;
 
+import org.quickperf.sql.execution.SqlAnalysis;
+import org.quickperf.writer.DefaultWriterFactory;
+import org.quickperf.writer.WriterFactory;
+
 import java.lang.annotation.Annotation;
 
 /**
@@ -384,13 +388,41 @@ public class SqlAnnotationBuilder {
 
     /**
      *Allows to build {@link org.quickperf.sql.annotation.AnalyzeSql} annotation
+     * Custom header format and Writer class
      */
-    public static AnalyzeSql analyzeSql(){
+    public static AnalyzeSql analyzeSql(final String format, final Class<? extends WriterFactory> writerFactoryClass){
         return new AnalyzeSql(){
+            @Override
+            public String format() {
+                return format;
+            }
+
+            @Override
+            public Class<? extends WriterFactory> writerFactory() {
+                return writerFactoryClass;
+            }
+
             @Override
             public Class<? extends Annotation> annotationType() {
                 return AnalyzeSql.class;
             }
         };
     }
+
+    /**
+     *Allows to build {@link org.quickperf.sql.annotation.AnalyzeSql} annotation
+     * Custom message with standard {@link DefaultWriterFactory.SystemOutPrintWriterInstance}
+     */
+    public static AnalyzeSql analyzeSql(final String format){
+        return analyzeSql(format, DefaultWriterFactory.class);
+    }
+
+    /**
+     * Allows to build {@link org.quickperf.sql.annotation.AnalyzeSql} annotation
+     * Default message and Writer
+     */
+    public static AnalyzeSql analyzeSql(){
+        return analyzeSql(AnalyzeSql.QUICKPREF_SQL_REPORT, DefaultWriterFactory.class);
+    }
+
 }
