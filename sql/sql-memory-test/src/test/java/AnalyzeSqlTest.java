@@ -22,19 +22,19 @@ public class AnalyzeSqlTest {
             query.getResultList();
         }
 
-//        @Test
-//        public void insert() {
-//            EntityManager em = emf.createEntityManager();
-//            em.getTransaction().begin();
-//
-//            Book effectiveJava = new Book();
-//            effectiveJava.setIsbn("effectiveJavaIsbn");
-//            effectiveJava.setTitle("Effective Java");
-//
-//            em.persist(effectiveJava);
-//
-//            em.getTransaction().commit();
-//        }
+        @Test
+        public void insert() {
+            EntityManager em = emf.createEntityManager();
+            em.getTransaction().begin();
+
+            Book effectiveJava = new Book();
+            effectiveJava.setIsbn("effectiveJavaIsbn");
+            effectiveJava.setTitle("Effective Java");
+
+            em.persist(effectiveJava);
+
+            em.getTransaction().commit();
+        }
 //
 //        @Test
 //        public void update() {
@@ -82,17 +82,18 @@ public class AnalyzeSqlTest {
 
     }
 
-//    @Test
-//    public void should_generate_a_global_report() {
-//        // GIVEN
-//        Class<?> classUnderTest = AClassAnnotatedWithSqlAnalyze.class;
-//
-//        // WHEN
-//        PrintableResult result = PrintableResult.testResult(classUnderTest);
-//
-//        // THEN
-//        Assertions.assertThat(result.toString())
-//                .contains("SELECT: 1");
-//    }
+    @Test
+    public void should_generate_a_global_report() {
+        // GIVEN
+        Class<?> classUnderTest = AClassAnnotatedWithSqlAnalyze.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        Assertions.assertThat(result.toString())
+                .contains("[QUICK PERF] SQL Analyzis:\n%s")
+                .contains("SELECT: 1");
+    }
 
 }

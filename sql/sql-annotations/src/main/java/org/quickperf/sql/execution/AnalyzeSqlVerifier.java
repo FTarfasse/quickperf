@@ -19,12 +19,13 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         //SelectAnalysis selectAnalysis = SelectAnalysisExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions);
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
-            String sqlReport = "";
+            StringBuilder sqlReport = new StringBuilder();
             long number = sqlAnalysis.getSelectAnalysis().getSelectNumber().getValue();
             long selectNumber = sqlAnalysis.getSelectAnalysis().getSelectNumber().getValue();
 //            pw.append("JDBC execution: " + sqlAnalysis.getJdbcQueryExecutionNumber().getValue());
 
-            sqlReport += "SELECT: " + selectNumber;
+            sqlReport.append("SELECT: ").append(selectNumber).append(System.lineSeparator());
+            sqlReport.append(sqlAnalysis.getSqlExecutions().toString());
             // "[JDBC QUERY EXECUTION (executeQuery, executeBatch, ...)]"
             //sqlExecutions.toString();
 
