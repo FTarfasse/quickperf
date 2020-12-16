@@ -25,24 +25,26 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
         StringBuilder sqlReport = new StringBuilder();
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
-            //SelectAnalysis type = sqlAnalysis.getValue();
-            //if(type instanceof SelectAnalysis){
-            // demeter law
-            SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
-            Count selectNumber = selectAnalysis.getSelectNumber();
-            sqlReport.append("SELECT: ")
-                     .append((long) selectNumber.getValue())
-                     .append(System.lineSeparator());
-
-
-
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
-            long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
 
-            //}
+//            SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
+//            Count selectNumber = selectAnalysis.getSelectNumber();
+
+            long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
+            if (selectCount > 0){
+                sqlReport.append("SELECT: ")
+                         .append(selectCount)
+                         .append(System.lineSeparator());
+            }
+
+            long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
+            if(insertCount > 0){
+                sqlReport.append("INSERT: ")
+                        .append(insertCount)
+                        .append(System.lineSeparator());
+            }
 
             pw.printf(annotation.format(), sqlReport);
-//          sqlReport.append(sqlAnalysis.getSqlExecutions().toString());
 
         }
 
