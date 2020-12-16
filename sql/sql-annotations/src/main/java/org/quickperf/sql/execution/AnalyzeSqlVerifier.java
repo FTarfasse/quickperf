@@ -1,8 +1,13 @@
 package org.quickperf.sql.execution;
 
+import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
+import org.quickperf.measure.PerfMeasure;
+import org.quickperf.sql.SqlExecutions;
 import org.quickperf.sql.annotation.AnalyzeSql;
+import org.quickperf.sql.select.analysis.SelectAnalysis;
+import org.quickperf.unit.Count;
 import org.quickperf.writer.PrintWriterBuilder;
 import org.quickperf.writer.WriterFactory;
 
@@ -18,19 +23,26 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
     public PerfIssue verifyPerfIssue(AnalyzeSql annotation, SqlAnalysis sqlAnalysis) {
         //SelectAnalysis selectAnalysis = SelectAnalysisExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions);
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
+        StringBuilder sqlReport = new StringBuilder();
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
-            StringBuilder sqlReport = new StringBuilder();
-            long number = sqlAnalysis.getSelectAnalysis().getSelectNumber().getValue();
-            long selectNumber = sqlAnalysis.getSelectAnalysis().getSelectNumber().getValue();
-//            pw.append("JDBC execution: " + sqlAnalysis.getJdbcQueryExecutionNumber().getValue());
+            //SelectAnalysis type = sqlAnalysis.getValue();
+            //if(type instanceof SelectAnalysis){
+            // demeter law
+            SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
+            Count selectNumber = selectAnalysis.getSelectNumber();
+            sqlReport.append("SELECT: ")
+                     .append((long) selectNumber.getValue())
+                     .append(System.lineSeparator());
 
-            sqlReport.append("SELECT: ").append(selectNumber).append(System.lineSeparator());
-            sqlReport.append(sqlAnalysis.getSqlExecutions().toString());
-            // "[JDBC QUERY EXECUTION (executeQuery, executeBatch, ...)]"
-            //sqlExecutions.toString();
 
-//            return new PerfIssue(pw.toString());
+
+            SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
+            long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
+
+            //}
+
             pw.printf(annotation.format(), sqlReport);
+//          sqlReport.append(sqlAnalysis.getSqlExecutions().toString());
 
         }
 
