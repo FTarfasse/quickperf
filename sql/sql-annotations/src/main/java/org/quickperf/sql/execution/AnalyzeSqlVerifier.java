@@ -28,49 +28,68 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
     public static AnalyzeSqlVerifier INSTANCE = new AnalyzeSqlVerifier();
 
-    private AnalyzeSqlVerifier() {}
+    private AnalyzeSqlVerifier() {
+    }
 
     @Override
     public PerfIssue verifyPerfIssue(AnalyzeSql annotation, SqlAnalysis sqlAnalysis) {
-        //SelectAnalysis selectAnalysis = SelectAnalysisExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions);
+
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
         StringBuilder sqlReport = new StringBuilder();
+
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
+            // AFFICHER NOMBRE EXECUTION JDBC
+            // AFFICHER N+1 (voir HasSameSelect verifier)
+            int jdbcExecutions = sqlExecutions.getNumberOfExecutions();
+
             long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
-            if (selectCount > 0){
-                sqlReport.append("SELECT: ")
-                         .append(selectCount)
-                         .append(System.lineSeparator());
-            }
+            sqlReport.append(buildSelectCountReport(selectCount));
 
             long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
-            if(insertCount > 0){
-                sqlReport.append("INSERT: ")
-                        .append(insertCount)
-                        .append(System.lineSeparator());
-            }
+            sqlReport.append(buildInsertCountReport(insertCount));
 
             long updateCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.UPDATE);
-            if(updateCount > 0){
-                sqlReport.append("UPDATE: ")
-                        .append(updateCount)
-                        .append(System.lineSeparator());
-            }
+            sqlReport.append(buildUpdateCountReport(updateCount));
 
             long deleteCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE);
-            if(deleteCount > 0){
-                sqlReport.append("DELETE: ")
-                        .append(deleteCount)
-                        .append(System.lineSeparator());
-            }
+            sqlReport.append(buildDeleteCountReport(deleteCount));
 
             pw.printf(annotation.format(), sqlReport);
 
         }
 
         return PerfIssue.NONE;
+
+    }
+
+    private String buildUpdateCountReport(long updateCount) {
+        if (updateCount > 0) {
+            return "UPDATE: " + updateCount + System.lineSeparator();
+        }
+        return "";
+    }
+
+    private String buildInsertCountReport(long insertCount) {
+        if (insertCount > 0) {
+            return "INSERT: " + insertCount + System.lineSeparator();
+        }
+        return "";
+    }
+
+    private String buildSelectCountReport(long selectCount) {
+        if (selectCount > 0) {
+            return "SELECT: " + selectCount + System.lineSeparator();
+        }
+        return "";
+    }
+
+    private String buildDeleteCountReport(long deleteCount) {
+        if (deleteCount > 0) {
+            return "DELETE: " + deleteCount + System.lineSeparator();
+        }
+        return "";
     }
 
 }

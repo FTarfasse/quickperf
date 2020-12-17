@@ -9,9 +9,6 @@
  * Copyright 2019-2020 the original author or authors.
  */
 
-import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.results.PrintableResult;
 import org.junit.runner.RunWith;
@@ -28,8 +25,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,25 +36,10 @@ public class AnalyzeSqlTest {
     public static final String DELETE_FILE_PATH = findTargetPath() + File.separator + "delete-result.txt";
     public static final String NOTHING_HAPPENED = findTargetPath() + File.separator + "no-result.txt";
 
-
     private static String findTargetPath() {
         Path targetDirectory = Paths.get("target");
         return targetDirectory.toFile().getAbsolutePath();
     }
-
-//    @After
-//    public void cleanUp() { // remove existing files
-//        List<String> paths = new ArrayList<>();
-//        paths.add(SELECT_FILE_PATH);
-//        paths.add(INSERT_FILE_PATH);
-//        paths.add(UPDATE_FILE_PATH);
-//        paths.add(NOTHING_HAPPENED);
-//
-//        for (String path : paths) {
-//            File file = new File(path);
-//            file.delete();
-//        }
-//    }
 
     @RunWith(QuickPerfJUnitRunner.class)
     public static class NoExecution extends SqlTestBase {
@@ -177,7 +157,7 @@ public class AnalyzeSqlTest {
 
         assertThat(new File(INSERT_FILE_PATH))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
-                        + "INSERT: 1");
+                          + "INSERT: 1");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -194,14 +174,13 @@ public class AnalyzeSqlTest {
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         @Test
         public void update() {
-            EntityManager em = emf.createEntityManager();
-            em.getTransaction().begin();
-            String sql = " UPDATE book"
-                    + " SET isbn ='978-0134685991'"
-                    + " WHERE id = 1";
-            Query query = em.createNativeQuery(sql);
-            query.executeUpdate();
-            em.getTransaction().commit();
+            executeInATransaction(entityManager -> {
+                String sql = " UPDATE book"
+                           + " SET isbn ='978-0134685991'"
+                           + " WHERE id = 1";
+                Query query = entityManager.createNativeQuery(sql);
+                query.executeUpdate();
+            });
         }
 
     }
@@ -258,6 +237,7 @@ public class AnalyzeSqlTest {
 
         assertThat(new File(DELETE_FILE_PATH))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
-                        + "DELETE: 1");
+                          + "DELETE: 1");
     }
+
 }
