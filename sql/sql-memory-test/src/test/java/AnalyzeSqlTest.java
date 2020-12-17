@@ -10,13 +10,14 @@
  */
 
 import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.results.PrintableResult;
 import org.junit.runner.RunWith;
 import org.quickperf.junit4.QuickPerfJUnitRunner;
 import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.AnalyzeSql;
-import org.quickperf.sql.annotation.DisplaySqlOfTestMethodBody;
 import org.quickperf.writer.WriterFactory;
 
 import javax.persistence.EntityManager;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,12 +37,29 @@ public class AnalyzeSqlTest {
 
     public static final String SELECT_FILE_PATH = findTargetPath() + File.separator + "select-result.txt";
     public static final String INSERT_FILE_PATH = findTargetPath() + File.separator + "insert-result.txt";
+    public static final String UPDATE_FILE_PATH = findTargetPath() + File.separator + "update-result.txt";
+    public static final String DELETE_FILE_PATH = findTargetPath() + File.separator + "delete-result.txt";
     public static final String NOTHING_HAPPENED = findTargetPath() + File.separator + "no-result.txt";
+
 
     private static String findTargetPath() {
         Path targetDirectory = Paths.get("target");
         return targetDirectory.toFile().getAbsolutePath();
     }
+
+//    @After
+//    public void cleanUp() { // remove existing files
+//        List<String> paths = new ArrayList<>();
+//        paths.add(SELECT_FILE_PATH);
+//        paths.add(INSERT_FILE_PATH);
+//        paths.add(UPDATE_FILE_PATH);
+//        paths.add(NOTHING_HAPPENED);
+//
+//        for (String path : paths) {
+//            File file = new File(path);
+//            file.delete();
+//        }
+//    }
 
     @RunWith(QuickPerfJUnitRunner.class)
     public static class NoExecution extends SqlTestBase {
@@ -54,8 +74,8 @@ public class AnalyzeSqlTest {
         @Test
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         public void noExecution() {
-            EntityManager em = emf.createEntityManager();
-            Query query = em.createQuery("FROM " + Book.class.getCanonicalName());
+            // EntityManager em = emf.createEntityManager();
+            // Query query = em.createQuery("FROM " + Book.class.getCanonicalName());
             // query.getResultList();
         }
 
@@ -65,7 +85,7 @@ public class AnalyzeSqlTest {
     public void should_report_nothing() {
 
         // GIVEN
-        Class<?> classUnderTest = SelectExecution.class;
+        Class<?> classUnderTest = NoExecution.class;
 
         // WHEN
         PrintableResult testResult = PrintableResult.testResult(classUnderTest);
@@ -155,9 +175,89 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(new File(INSERT_FILE_PATH    ))
+        assertThat(new File(INSERT_FILE_PATH))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
                         + "INSERT: 1");
     }
 
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class UpdateExecution extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(UPDATE_FILE_PATH);
+            }
+        }
+
+        @AnalyzeSql(writerFactory = FileWriterBuilder.class)
+        @Test
+        public void update() {
+            EntityManager em = emf.createEntityManager();
+            em.getTransaction().begin();
+            String sql = " UPDATE book"
+                    + " SET isbn ='978-0134685991'"
+                    + " WHERE id = 1";
+            Query query = em.createNativeQuery(sql);
+            query.executeUpdate();
+            em.getTransaction().commit();
+        }
+
+    }
+
+    @Test
+    public void should_report_update() {
+        // GIVEN
+        Class<?> classUnderTest = UpdateExecution.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(new File(UPDATE_FILE_PATH))
+                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+                        + "UPDATE: 1");
+    }
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class DeleteExecution extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(DELETE_FILE_PATH);
+            }
+        }
+
+        @AnalyzeSql(writerFactory = FileWriterBuilder.class)
+        @Test
+        public void delete() {
+            EntityManager em = emf.createEntityManager();
+            em.getTransaction().begin();
+            Query query = em.createQuery("DELETE FROM " + Book.class.getCanonicalName());
+            query.executeUpdate();
+            em.getTransaction().commit();
+        }
+
+    }
+
+    @Test
+    public void should_report_delete() {
+        // GIVEN
+        Class<?> classUnderTest = DeleteExecution.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(new File(DELETE_FILE_PATH))
+                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+                        + "DELETE: 1");
+    }
 }

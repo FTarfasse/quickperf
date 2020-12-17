@@ -1,3 +1,14 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+ *
+ * Copyright 2019-2020 the original author or authors.
+ */
+
 package org.quickperf.sql.execution;
 
 import net.ttddyy.dsproxy.QueryType;
@@ -27,9 +38,6 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
-//            SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
-//            Count selectNumber = selectAnalysis.getSelectNumber();
-
             long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
             if (selectCount > 0){
                 sqlReport.append("SELECT: ")
@@ -41,6 +49,20 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             if(insertCount > 0){
                 sqlReport.append("INSERT: ")
                         .append(insertCount)
+                        .append(System.lineSeparator());
+            }
+
+            long updateCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.UPDATE);
+            if(updateCount > 0){
+                sqlReport.append("UPDATE: ")
+                        .append(updateCount)
+                        .append(System.lineSeparator());
+            }
+
+            long deleteCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE);
+            if(deleteCount > 0){
+                sqlReport.append("DELETE: ")
+                        .append(deleteCount)
                         .append(System.lineSeparator());
             }
 
