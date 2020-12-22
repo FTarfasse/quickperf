@@ -14,11 +14,9 @@ package org.quickperf.sql.execution;
 import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
-import org.quickperf.measure.PerfMeasure;
 import org.quickperf.sql.SqlExecutions;
 import org.quickperf.sql.annotation.AnalyzeSql;
 import org.quickperf.sql.select.analysis.SelectAnalysis;
-import org.quickperf.unit.Count;
 import org.quickperf.writer.PrintWriterBuilder;
 import org.quickperf.writer.WriterFactory;
 
@@ -41,8 +39,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
             // AFFICHER NOMBRE EXECUTION JDBC
-            // AFFICHER N+1 (voir HasSameSelect verifier)
-            int jdbcExecutions = sqlExecutions.getNumberOfExecutions();
+            sqlReport.append(jdbcExecutions(sqlExecutions));
+
+            // AFFICHER N+1 (voir HasSameSelect verifier) SelectAnalysis.
+            // "Same SELECT statements"
 
             long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
             sqlReport.append(buildSelectCountReport(selectCount));
@@ -62,6 +62,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
         return PerfIssue.NONE;
 
+    }
+
+    private String jdbcExecutions(SqlExecutions sqlExecutions) {
+        return "SQL EXECUTIONS: " + sqlExecutions.getNumberOfExecutions() + System.lineSeparator();
     }
 
     private String buildUpdateCountReport(long updateCount) {

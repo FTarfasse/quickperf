@@ -17,7 +17,6 @@ import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.AnalyzeSql;
 import org.quickperf.writer.WriterFactory;
 
-import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.io.File;
 import java.io.FileWriter;
@@ -54,9 +53,6 @@ public class AnalyzeSqlTest {
         @Test
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         public void noExecution() {
-            // EntityManager em = emf.createEntityManager();
-            // Query query = em.createQuery("FROM " + Book.class.getCanonicalName());
-            // query.getResultList();
         }
 
     }
@@ -91,9 +87,10 @@ public class AnalyzeSqlTest {
         @Test
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         public void select() {
-            EntityManager em = emf.createEntityManager();
-            Query query = em.createQuery("FROM " + Book.class.getCanonicalName());
-            query.getResultList();
+            executeInATransaction(entityManager -> {
+                Query query = entityManager.createQuery("FROM " + Book.class.getCanonicalName());
+                query.getResultList();
+            });
         }
 
     }
@@ -130,16 +127,12 @@ public class AnalyzeSqlTest {
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         @Test
         public void insert() {
-            EntityManager em = emf.createEntityManager();
-            em.getTransaction().begin();
-
-            Book effectiveJava = new Book();
-            effectiveJava.setIsbn("effectiveJavaIsbn");
-            effectiveJava.setTitle("Effective Java");
-
-            em.persist(effectiveJava);
-
-            em.getTransaction().commit();
+            executeInATransaction(entityManager -> {
+                Book effectiveJava = new Book();
+                effectiveJava.setIsbn("effectiveJavaIsbn");
+                effectiveJava.setTitle("Effective Java");
+                entityManager.persist(effectiveJava);
+            });
         }
 
     }
@@ -157,7 +150,7 @@ public class AnalyzeSqlTest {
 
         assertThat(new File(INSERT_FILE_PATH))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
-                          + "INSERT: 1");
+                        + "INSERT: 1");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -176,8 +169,8 @@ public class AnalyzeSqlTest {
         public void update() {
             executeInATransaction(entityManager -> {
                 String sql = " UPDATE book"
-                           + " SET isbn ='978-0134685991'"
-                           + " WHERE id = 1";
+                        + " SET isbn ='978-0134685991'"
+                        + " WHERE id = 1";
                 Query query = entityManager.createNativeQuery(sql);
                 query.executeUpdate();
             });
@@ -215,11 +208,10 @@ public class AnalyzeSqlTest {
         @AnalyzeSql(writerFactory = FileWriterBuilder.class)
         @Test
         public void delete() {
-            EntityManager em = emf.createEntityManager();
-            em.getTransaction().begin();
-            Query query = em.createQuery("DELETE FROM " + Book.class.getCanonicalName());
-            query.executeUpdate();
-            em.getTransaction().commit();
+            executeInATransaction(entityManager -> {
+                Query query = entityManager.createQuery("DELETE FROM " + Book.class.getCanonicalName());
+                query.executeUpdate();
+            });
         }
 
     }
@@ -237,7 +229,56 @@ public class AnalyzeSqlTest {
 
         assertThat(new File(DELETE_FILE_PATH))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
-                          + "DELETE: 1");
+                        + "DELETE: 1");
+    }
+
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class SqlExecutions_are_properly_recorded extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(INSERT_FILE_PATH);
+            }
+        }
+
+        @AnalyzeSql(writerFactory = FileWriterBuilder.class)
+        @Test
+        public void queries() {
+            executeInATransaction(entityManager -> {
+                // String insertOne = "INSERT INTO Book (id,title) VALUES (1200, 'Book title')";
+                // Query firstInsertQuery = entityManager.createNativeQuery(insertOne);
+                // firstInsertQuery.executeUpdate();
+
+                Query query = entityManager.createQuery("FROM " + Book.class.getCanonicalName());
+                query.getResultList();
+
+                String insertTwo = "INSERT INTO Book (id,title) VALUES (1300, 'Book title')";
+                Query secondInsertQuery = entityManager.createNativeQuery(insertTwo);
+                secondInsertQuery.executeUpdate();
+            });
+        }
+
+    }
+
+    @Test
+    public void should_report_sql_executions() {
+        // GIVEN
+        Class<?> classUnderTest = SqlExecutions_are_properly_recorded.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(new File(INSERT_FILE_PATH))
+                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 2\n"
+                        + "SELECT: 1\n"
+                        + "INSERT: 1");
     }
 
 }
