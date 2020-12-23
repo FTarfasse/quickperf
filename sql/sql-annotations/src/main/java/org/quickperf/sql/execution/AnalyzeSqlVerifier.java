@@ -14,13 +14,16 @@ package org.quickperf.sql.execution;
 import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
+import org.quickperf.sql.SqlExecution;
 import org.quickperf.sql.SqlExecutions;
 import org.quickperf.sql.annotation.AnalyzeSql;
 import org.quickperf.sql.select.analysis.SelectAnalysis;
+import org.quickperf.time.ExecutionTime;
 import org.quickperf.writer.PrintWriterBuilder;
 import org.quickperf.writer.WriterFactory;
 
 import java.io.PrintWriter;
+import java.util.concurrent.TimeUnit;
 
 public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql, SqlAnalysis> {
 
@@ -38,15 +41,14 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
-            // AFFICHER NOMBRE EXECUTION JDBC
             sqlReport.append(jdbcExecutions(sqlExecutions));
-
-            // AFFICHER N+1 (voir HasSameSelect verifier) SelectAnalysis.
-            // "Same SELECT statements"
 
             long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
             sqlReport.append(buildSelectCountReport(selectCount));
+            // "Same SELECT statements"
+            sqlReport.append(buildSelectMessages(sqlAnalysis));
 
+            // TODO: annotation analyzing the Hibernate sequence call executed in insert statements
             long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
             sqlReport.append(buildInsertCountReport(insertCount));
 
@@ -56,12 +58,36 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             long deleteCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE);
             sqlReport.append(buildDeleteCountReport(deleteCount));
 
+            sqlReport.append(getMaxTime(sqlExecutions));
+            sqlReport.append(numberOfQueries(sqlExecutions) + sqlExecutions.toString());
+
             pw.printf(annotation.format(), sqlReport);
 
         }
 
         return PerfIssue.NONE;
 
+    }
+
+    private String buildSelectMessages(SqlAnalysis sqlAnalysis) {
+        String mes = "";
+        SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
+
+        if (selectAnalysis.hasSameSelects()) {
+            mes += "    Same SELECT statements" + System.lineSeparator();
+        }
+        if (selectAnalysis.getSameSelectTypesWithDifferentParamValues().evaluate()) {
+            mes += sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().getSuggestionToFixIt();
+        }
+
+        return mes;
+    }
+
+    private String numberOfQueries(SqlExecutions sqlExecutions) {
+        if (sqlExecutions.getNumberOfExecutions() == 0){
+            return "";
+        }
+        return sqlExecutions.getNumberOfExecutions() > 1 ? "QUERIES: " + System.lineSeparator() : "QUERY: " + System.lineSeparator();
     }
 
     private String jdbcExecutions(SqlExecutions sqlExecutions) {
@@ -94,6 +120,26 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             return "DELETE: " + deleteCount + System.lineSeparator();
         }
         return "";
+    }
+
+    private String getMaxTime(SqlExecutions sqlExecutions ){
+        if (sqlExecutions.getNumberOfExecutions() == 0){
+            return "";
+        }
+
+        long maxExecutionTime = 0;
+
+        for (SqlExecution execution : sqlExecutions) {
+
+            long executionTime = execution.getElapsedTime();
+
+            if(executionTime > maxExecutionTime) {
+                maxExecutionTime = executionTime;
+            }
+
+        }
+
+        return "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
     }
 
 }

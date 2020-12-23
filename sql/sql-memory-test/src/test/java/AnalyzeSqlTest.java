@@ -22,23 +22,40 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AnalyzeSqlTest {
 
-    public static final String SELECT_FILE_PATH = findTargetPath() + File.separator + "select-result.txt";
-    public static final String INSERT_FILE_PATH = findTargetPath() + File.separator + "insert-result.txt";
-    public static final String UPDATE_FILE_PATH = findTargetPath() + File.separator + "update-result.txt";
-    public static final String DELETE_FILE_PATH = findTargetPath() + File.separator + "delete-result.txt";
-    public static final String NOTHING_HAPPENED = findTargetPath() + File.separator + "no-result.txt";
+    private static final String SELECT_FILE_PATH = findTargetPath() + File.separator + "select-result.txt";
+    private static final String INSERT_FILE_PATH = findTargetPath() + File.separator + "insert-result.txt";
+    private static final String UPDATE_FILE_PATH = findTargetPath() + File.separator + "update-result.txt";
+    private static final String DELETE_FILE_PATH = findTargetPath() + File.separator + "delete-result.txt";
+    private static final String NOTHING_HAPPENED = findTargetPath() + File.separator + "no-result.txt";
+    private static final String MULTIPLE_EXECUTIONS = findTargetPath() + File.separator + "sql-executions.txt";
+    private static final String SELECT_SPECIFIC_MESSAGES = findTargetPath() + File.separator + "select-specific.txt";
 
     private static String findTargetPath() {
         Path targetDirectory = Paths.get("target");
         return targetDirectory.toFile().getAbsolutePath();
     }
+
+   private static String getFileContent(String filePath, int upToLine){
+
+       String fileContent = null;
+       try {
+           fileContent = Files.lines(Paths.get(filePath))
+                   .limit(upToLine)
+                   .collect(Collectors.joining(System.lineSeparator()));
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+       return fileContent;
+   }
 
     @RunWith(QuickPerfJUnitRunner.class)
     public static class NoExecution extends SqlTestBase {
@@ -71,6 +88,7 @@ public class AnalyzeSqlTest {
 
         assertThat(new File(NOTHING_HAPPENED))
                 .hasContent("[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 0\n"
                         + "");
     }
 
@@ -107,8 +125,9 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(testResult.failureCount()).isZero();
 
-        assertThat(new File(SELECT_FILE_PATH))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+        assertThat(getFileContent(SELECT_FILE_PATH, 3)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 1\n"
                         + "SELECT: 1");
 
     }
@@ -148,8 +167,9 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(new File(INSERT_FILE_PATH))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+        assertThat(getFileContent(INSERT_FILE_PATH,3)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 2\n" // Hibernate sequence call is also called
                         + "INSERT: 1");
     }
 
@@ -189,8 +209,9 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(new File(UPDATE_FILE_PATH))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+        assertThat(getFileContent(UPDATE_FILE_PATH, 3)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 1\n"
                         + "UPDATE: 1");
     }
 
@@ -227,20 +248,38 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(new File(DELETE_FILE_PATH))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+        assertThat(getFileContent(DELETE_FILE_PATH, 3)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 1\n"
                         + "DELETE: 1");
     }
 
+    @Test
+    public void should_display_method_body() {
+        // GIVEN
+        Class<?> classUnderTest = DeleteExecution.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(getFileContent(DELETE_FILE_PATH, 10)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 1\n"
+                        + "DELETE: 1"
+                        + "");
+    }
 
     @RunWith(QuickPerfJUnitRunner.class)
-    public static class SqlExecutions_are_properly_recorded extends SqlTestBase {
+    public static class SqlExecutions_are_properly_analyzed extends SqlTestBase {
 
         public static class FileWriterBuilder implements WriterFactory {
 
             @Override
             public Writer buildWriter() throws IOException {
-                return new FileWriter(INSERT_FILE_PATH);
+                return new FileWriter(MULTIPLE_EXECUTIONS);
             }
         }
 
@@ -248,10 +287,6 @@ public class AnalyzeSqlTest {
         @Test
         public void queries() {
             executeInATransaction(entityManager -> {
-                // String insertOne = "INSERT INTO Book (id,title) VALUES (1200, 'Book title')";
-                // Query firstInsertQuery = entityManager.createNativeQuery(insertOne);
-                // firstInsertQuery.executeUpdate();
-
                 Query query = entityManager.createQuery("FROM " + Book.class.getCanonicalName());
                 query.getResultList();
 
@@ -266,7 +301,7 @@ public class AnalyzeSqlTest {
     @Test
     public void should_report_sql_executions() {
         // GIVEN
-        Class<?> classUnderTest = SqlExecutions_are_properly_recorded.class;
+        Class<?> classUnderTest = SqlExecutions_are_properly_analyzed.class;
 
         // WHEN
         PrintableResult result = PrintableResult.testResult(classUnderTest);
@@ -274,11 +309,73 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(new File(INSERT_FILE_PATH))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
+        assertThat(getFileContent(MULTIPLE_EXECUTIONS, 4)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
                         + "SQL EXECUTIONS: 2\n"
                         + "SELECT: 1\n"
                         + "INSERT: 1");
     }
 
+    @Test
+    public void should_display_max_query_execution_time() {
+        // GIVEN
+        Class<?> classUnderTest = SqlExecutions_are_properly_analyzed.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(getFileContent(MULTIPLE_EXECUTIONS, 5)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 2\n"
+                        + "SELECT: 1\n"
+                        + "INSERT: 1\n"
+                        + "MAX TIME: 0 ms" );
+    }
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class SelectIssues extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(SELECT_SPECIFIC_MESSAGES);
+            }
+        }
+
+        @AnalyzeSql(writerFactory = FileWriterBuilder.class)
+        @Test
+        public void queries() {
+            executeInATransaction(entityManager -> {
+                Query query = entityManager.createQuery("FROM " + Book.class.getCanonicalName());
+                query.getResultList();
+
+                Query sameQueryAgain = entityManager.createQuery("FROM " + Book.class.getCanonicalName());
+                sameQueryAgain.getResultList();
+
+            });
+        }
+
+    }
+
+    @Test
+    public void should_report_same_selects() {
+        // GIVEN
+        Class<?> classUnderTest = SelectIssues.class;
+
+        // WHEN
+        PrintableResult result = PrintableResult.testResult(classUnderTest);
+
+        // THEN
+        assertThat(result.failureCount()).isZero();
+
+        assertThat(getFileContent(SELECT_SPECIFIC_MESSAGES, 4)).contains(
+                        "[QUICK PERF] SQL Analyzis:\n"
+                        + "SQL EXECUTIONS: 2\n"
+                        + "SELECT: 2\n"
+                        + "    Same SELECT statements");
+    }
 }
