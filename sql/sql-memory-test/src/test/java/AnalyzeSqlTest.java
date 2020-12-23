@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.experimental.results.PrintableResult.testResult;
 
 public class AnalyzeSqlTest {
 
@@ -38,24 +39,25 @@ public class AnalyzeSqlTest {
     private static final String NOTHING_HAPPENED = findTargetPath() + File.separator + "no-result.txt";
     private static final String MULTIPLE_EXECUTIONS = findTargetPath() + File.separator + "sql-executions.txt";
     private static final String SELECT_SPECIFIC_MESSAGES = findTargetPath() + File.separator + "select-specific.txt";
+    private static final String DETECT_N_PLUS_ONE = findTargetPath() + File.separator + "n-plus-one.txt";
+    private static final String WILDCARD_SELECT = findTargetPath() + File.separator + "wildcard-select.txt";
+    private static final String BIND_PARAMETERS = findTargetPath() + File.separator + "bind-parameters.txt";
 
     private static String findTargetPath() {
         Path targetDirectory = Paths.get("target");
         return targetDirectory.toFile().getAbsolutePath();
     }
 
-   private static String getFileContent(String filePath, int upToLine){
-
-       String fileContent = null;
-       try {
-           fileContent = Files.lines(Paths.get(filePath))
-                   .limit(upToLine)
-                   .collect(Collectors.joining(System.lineSeparator()));
-       } catch (IOException e) {
-           e.printStackTrace();
-       }
-       return fileContent;
-   }
+    private static String getFileContent(String filePath) {
+        String fileContent = null;
+        try {
+            fileContent = Files.lines(Paths.get(filePath))
+                    .collect(Collectors.joining(System.lineSeparator()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return fileContent;
+    }
 
     @RunWith(QuickPerfJUnitRunner.class)
     public static class NoExecution extends SqlTestBase {
@@ -86,10 +88,9 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(testResult.failureCount()).isZero();
 
-        assertThat(new File(NOTHING_HAPPENED))
-                .hasContent("[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 0\n"
-                        + "");
+        assertThat(getFileContent(NOTHING_HAPPENED))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 0");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -125,10 +126,10 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(testResult.failureCount()).isZero();
 
-        assertThat(getFileContent(SELECT_FILE_PATH, 3)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 1\n"
-                        + "SELECT: 1");
+        assertThat(getFileContent(SELECT_FILE_PATH))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 1")
+                .contains("SELECT: 1");
 
     }
 
@@ -167,10 +168,10 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(INSERT_FILE_PATH,3)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 2\n" // Hibernate sequence call is also called
-                        + "INSERT: 1");
+        assertThat(getFileContent(INSERT_FILE_PATH))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 2") // Hibernate sequence call is also called
+                .contains("INSERT: 1");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -209,10 +210,10 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(UPDATE_FILE_PATH, 3)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 1\n"
-                        + "UPDATE: 1");
+        assertThat(getFileContent(UPDATE_FILE_PATH))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 1")
+                .contains("UPDATE: 1");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -248,10 +249,10 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(DELETE_FILE_PATH, 3)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 1\n"
-                        + "DELETE: 1");
+        assertThat(getFileContent(DELETE_FILE_PATH))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 1")
+                .contains("DELETE: 1");
     }
 
     @Test
@@ -265,11 +266,10 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(DELETE_FILE_PATH, 10)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 1\n"
-                        + "DELETE: 1"
-                        + "");
+        assertThat(getFileContent(DELETE_FILE_PATH))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 1")
+                .contains("DELETE: 1");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -309,11 +309,11 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(MULTIPLE_EXECUTIONS, 4)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 2\n"
-                        + "SELECT: 1\n"
-                        + "INSERT: 1");
+        assertThat(getFileContent(MULTIPLE_EXECUTIONS))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 2")
+                .contains("SELECT: 1")
+                .contains("INSERT: 1");
     }
 
     @Test
@@ -327,12 +327,13 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(MULTIPLE_EXECUTIONS, 5)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 2\n"
-                        + "SELECT: 1\n"
-                        + "INSERT: 1\n"
-                        + "MAX TIME: 0 ms" );
+        assertThat(getFileContent(MULTIPLE_EXECUTIONS))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 2")
+                .contains("SELECT: 1")
+                .contains("INSERT: 1")
+                .contains("MAX TIME:")
+                .contains("ms");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -372,10 +373,138 @@ public class AnalyzeSqlTest {
         // THEN
         assertThat(result.failureCount()).isZero();
 
-        assertThat(getFileContent(SELECT_SPECIFIC_MESSAGES, 4)).contains(
-                        "[QUICK PERF] SQL Analyzis:\n"
-                        + "SQL EXECUTIONS: 2\n"
-                        + "SELECT: 2\n"
-                        + "    Same SELECT statements");
+        assertThat(getFileContent(SELECT_SPECIFIC_MESSAGES))
+                .contains("[QUICK PERF] SQL Analyzis:")
+                .contains("SQL EXECUTIONS: 2")
+                .contains("SELECT: 2")
+                .contains("Same SELECT statements");
+    }
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class NplusOneIssues extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(DETECT_N_PLUS_ONE);
+            }
+        }
+
+        @AnalyzeSql(writerFactory = NplusOneIssues.FileWriterBuilder.class)
+        @Test
+        public void execute_two_same_select_types_with_two_diff_param_values() {
+
+            executeInATransaction(entityManager -> {
+                String paramName = "idParam";
+                String hqlQuery = "FROM " + Book.class.getCanonicalName() + " b WHERE b.id=:" + paramName;
+
+                Query query = entityManager.createQuery(hqlQuery);
+                query.setParameter(paramName, 2L);
+                query.getResultList();
+
+                Query query2 = entityManager.createQuery(hqlQuery);
+                query2.setParameter(paramName, 1L);
+                query2.getResultList();
+
+            });
+        }
+
+    }
+
+    @Test
+    public void
+    should_alert_if_n_plus_one_issue_is_detected() {
+
+        // GIVEN
+        Class<?> testClass = NplusOneIssues.class;
+
+        // WHEN
+        PrintableResult printableResult = testResult(testClass);
+
+        // THEN
+        assertThat(printableResult.failureCount()).isZero();
+        assertThat(getFileContent(DETECT_N_PLUS_ONE))
+                .contains("server roundtrips")
+                .contains("N+1");
+
+    }
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class SelectWithWildcard extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(WILDCARD_SELECT);
+            }
+        }
+
+        @Test
+        @AnalyzeSql(writerFactory = SelectWithWildcard.FileWriterBuilder.class)
+        public void execute_select_who_started_with_like_wildcard() {
+            executeInATransaction(entityManager -> {
+                Query nativeQuery = entityManager.createNativeQuery("SELECT * FROM Book b WHERE b.title LIKE  '%Ja'");
+                nativeQuery.getResultList();
+            });
+        }
+
+    }
+
+    @Test
+    public void
+    should_alert_if_select_containing_like_with_percentage_leading_wildcard() {
+
+        // GIVEN
+        Class<?> testClass = SelectWithWildcard.class;
+
+        // WHEN
+        PrintableResult printableResult = testResult(testClass);
+
+        // THEN
+        assertThat(printableResult.failureCount()).isZero();
+        assertThat(getFileContent(WILDCARD_SELECT))
+                .contains("Like with leading wildcard detected (% or _)");
+
+    }
+
+    @RunWith(QuickPerfJUnitRunner.class)
+    public static class InsertWithoutBindParameters extends SqlTestBase {
+
+        public static class FileWriterBuilder implements WriterFactory {
+
+            @Override
+            public Writer buildWriter() throws IOException {
+                return new FileWriter(BIND_PARAMETERS);
+            }
+        }
+
+        @Test
+        @AnalyzeSql(writerFactory = FileWriterBuilder.class)
+        public void insert_without_bind_parameters() {
+            executeInATransaction(entityManager -> {
+                String sql = "INSERT INTO book VALUES (50L, 'CLEAN CODE','978-03213566974s')";
+                Query nativeQuery = entityManager.createNativeQuery(sql);
+                nativeQuery.executeUpdate();
+            });
+        }
+
+    }
+
+    @Test
+    public void should_alert_if_no_bind_parameters_where_found() {
+
+        // GIVEN
+        Class<?> testClass = InsertWithoutBindParameters.class;
+
+        // WHEN
+        PrintableResult printableResult = testResult(testClass);
+
+        // THEN
+        assertThat(printableResult.failureCount()).isZero();
+        assertThat(getFileContent(BIND_PARAMETERS))
+                .contains("Query without bind parameters");
+
     }
 }

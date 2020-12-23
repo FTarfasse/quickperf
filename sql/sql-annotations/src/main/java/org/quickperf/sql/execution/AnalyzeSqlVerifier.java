@@ -11,12 +11,15 @@
 
 package org.quickperf.sql.execution;
 
+import net.ttddyy.dsproxy.QueryInfo;
 import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
+import org.quickperf.measure.BooleanMeasure;
 import org.quickperf.sql.SqlExecution;
 import org.quickperf.sql.SqlExecutions;
 import org.quickperf.sql.annotation.AnalyzeSql;
+import org.quickperf.sql.bindparams.AllParametersAreBoundExtractor;
 import org.quickperf.sql.select.analysis.SelectAnalysis;
 import org.quickperf.time.ExecutionTime;
 import org.quickperf.writer.PrintWriterBuilder;
@@ -59,8 +62,8 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             sqlReport.append(buildDeleteCountReport(deleteCount));
 
             sqlReport.append(getMaxTime(sqlExecutions));
+            sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
             sqlReport.append(numberOfQueries(sqlExecutions) + sqlExecutions.toString());
-
             pw.printf(annotation.format(), sqlReport);
 
         }
@@ -74,17 +77,28 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
 
         if (selectAnalysis.hasSameSelects()) {
-            mes += "    Same SELECT statements" + System.lineSeparator();
+            mes += "* Same SELECT statements" + System.lineSeparator();
         }
-        if (selectAnalysis.getSameSelectTypesWithDifferentParamValues().evaluate()) {
-            mes += sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().getSuggestionToFixIt();
+        if (checkIfWildcard(sqlAnalysis.getSqlExecutions())) {
+            mes += "* Like with leading wildcard detected (% or _)Like with leading wildcard detected (% or _)" + System.lineSeparator();
+        }
+        if (checkIfBindParameters(sqlAnalysis.getSqlExecutions())){
+           mes += "* Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
     }
 
+    private String buildNPlusOneMessage(SqlAnalysis sqlAnalysis) {
+        String mes = "";
+        if (sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().evaluate()) {
+            mes += sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().getSuggestionToFixIt() + System.lineSeparator() + System.lineSeparator();
+        }
+        return mes;
+    }
+
     private String numberOfQueries(SqlExecutions sqlExecutions) {
-        if (sqlExecutions.getNumberOfExecutions() == 0){
+        if (sqlExecutions.getNumberOfExecutions() == 0) {
             return "";
         }
         return sqlExecutions.getNumberOfExecutions() > 1 ? "QUERIES: " + System.lineSeparator() : "QUERY: " + System.lineSeparator();
@@ -122,8 +136,8 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         return "";
     }
 
-    private String getMaxTime(SqlExecutions sqlExecutions ){
-        if (sqlExecutions.getNumberOfExecutions() == 0){
+    private String getMaxTime(SqlExecutions sqlExecutions) {
+        if (sqlExecutions.getNumberOfExecutions() == 0) {
             return "";
         }
 
@@ -133,7 +147,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
             long executionTime = execution.getElapsedTime();
 
-            if(executionTime > maxExecutionTime) {
+            if (executionTime > maxExecutionTime) {
                 maxExecutionTime = executionTime;
             }
 
@@ -142,4 +156,26 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         return "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
     }
 
+    private boolean checkIfWildcard(SqlExecutions sqlExecutions) {
+        for (SqlExecution sqlExecution : sqlExecutions) {
+            for (QueryInfo query : sqlExecution.getQueries()) {
+                if (searchLikeWithLeadingWildcardOn(query)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean searchLikeWithLeadingWildcardOn(QueryInfo queryInfo) {
+        String query = queryInfo.getQuery();
+        String queryInLowerCase = query.toLowerCase();
+        String queryInLowerCaseWithoutWhiteSpaces = queryInLowerCase.replace(" ", "");
+        return queryInLowerCaseWithoutWhiteSpaces.contains("like'%")
+                || queryInLowerCaseWithoutWhiteSpaces.contains("like'_");
+    }
+
+   private boolean checkIfBindParameters(SqlExecutions sqlExecutions) {
+      return !AllParametersAreBoundExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions).getValue();
+   }
 }
