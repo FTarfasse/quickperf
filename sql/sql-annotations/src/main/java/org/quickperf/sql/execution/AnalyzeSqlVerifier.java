@@ -11,15 +11,14 @@
 
 package org.quickperf.sql.execution;
 
-import net.ttddyy.dsproxy.QueryInfo;
 import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
-import org.quickperf.measure.BooleanMeasure;
 import org.quickperf.sql.SqlExecution;
 import org.quickperf.sql.SqlExecutions;
 import org.quickperf.sql.annotation.AnalyzeSql;
 import org.quickperf.sql.bindparams.AllParametersAreBoundExtractor;
+import org.quickperf.sql.like.ContainsLikeWithLeadingWildcardExtractor;
 import org.quickperf.sql.select.analysis.SelectAnalysis;
 import org.quickperf.time.ExecutionTime;
 import org.quickperf.writer.PrintWriterBuilder;
@@ -48,7 +47,6 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
             long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
             sqlReport.append(buildSelectCountReport(selectCount));
-            // "Same SELECT statements"
             sqlReport.append(buildSelectMessages(sqlAnalysis));
 
             // TODO: annotation analyzing the Hibernate sequence call executed in insert statements
@@ -80,10 +78,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             mes += "* Same SELECT statements" + System.lineSeparator();
         }
         if (checkIfWildcard(sqlAnalysis.getSqlExecutions())) {
-            mes += "* Like with leading wildcard detected (% or _)Like with leading wildcard detected (% or _)" + System.lineSeparator();
+            mes += "* Like with leading wildcard detected (% or _)" + System.lineSeparator();
         }
-        if (checkIfBindParameters(sqlAnalysis.getSqlExecutions())){
-           mes += "* Query without bind parameters" + System.lineSeparator();
+        if (checkIfBindParameters(sqlAnalysis.getSqlExecutions())) {
+            mes += "* Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
@@ -157,25 +155,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
     }
 
     private boolean checkIfWildcard(SqlExecutions sqlExecutions) {
-        for (SqlExecution sqlExecution : sqlExecutions) {
-            for (QueryInfo query : sqlExecution.getQueries()) {
-                if (searchLikeWithLeadingWildcardOn(query)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return ContainsLikeWithLeadingWildcardExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions).getValue();
     }
 
-    private boolean searchLikeWithLeadingWildcardOn(QueryInfo queryInfo) {
-        String query = queryInfo.getQuery();
-        String queryInLowerCase = query.toLowerCase();
-        String queryInLowerCaseWithoutWhiteSpaces = queryInLowerCase.replace(" ", "");
-        return queryInLowerCaseWithoutWhiteSpaces.contains("like'%")
-                || queryInLowerCaseWithoutWhiteSpaces.contains("like'_");
+    private boolean checkIfBindParameters(SqlExecutions sqlExecutions) {
+        return !AllParametersAreBoundExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions).getValue();
     }
-
-   private boolean checkIfBindParameters(SqlExecutions sqlExecutions) {
-      return !AllParametersAreBoundExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions).getValue();
-   }
 }

@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.quickperf.junit4.QuickPerfJUnitRunner;
 import org.quickperf.sql.Book;
 import org.quickperf.sql.annotation.AnalyzeSql;
+import org.quickperf.sql.annotation.DisableLikeWithLeadingWildcard;
 import org.quickperf.writer.WriterFactory;
 
 import javax.persistence.Query;
@@ -48,15 +49,9 @@ public class AnalyzeSqlTest {
         return targetDirectory.toFile().getAbsolutePath();
     }
 
-    private static String getFileContent(String filePath) {
-        String fileContent = null;
-        try {
-            fileContent = Files.lines(Paths.get(filePath))
-                    .collect(Collectors.joining(System.lineSeparator()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return fileContent;
+    private static String getFileContent(String filePath) throws IOException {
+        return Files.lines(Paths.get(filePath))
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -77,7 +72,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_nothing() {
+    public void should_report_nothing() throws IOException {
 
         // GIVEN
         Class<?> classUnderTest = NoExecution.class;
@@ -115,7 +110,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_select() {
+    public void should_report_select() throws IOException {
 
         // GIVEN
         Class<?> classUnderTest = SelectExecution.class;
@@ -158,7 +153,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_insert() {
+    public void should_report_insert() throws IOException {
         // GIVEN
         Class<?> classUnderTest = InsertExecution.class;
 
@@ -200,7 +195,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_update() {
+    public void should_report_update() throws IOException {
         // GIVEN
         Class<?> classUnderTest = UpdateExecution.class;
 
@@ -239,7 +234,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_delete() {
+    public void should_report_delete() throws IOException {
         // GIVEN
         Class<?> classUnderTest = DeleteExecution.class;
 
@@ -256,7 +251,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_display_method_body() {
+    public void should_display_method_body() throws IOException {
         // GIVEN
         Class<?> classUnderTest = DeleteExecution.class;
 
@@ -299,7 +294,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_sql_executions() {
+    public void should_report_sql_executions() throws IOException {
         // GIVEN
         Class<?> classUnderTest = SqlExecutions_are_properly_analyzed.class;
 
@@ -317,7 +312,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_display_max_query_execution_time() {
+    public void should_display_max_query_execution_time()throws IOException {
         // GIVEN
         Class<?> classUnderTest = SqlExecutions_are_properly_analyzed.class;
 
@@ -363,7 +358,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_report_same_selects() {
+    public void should_report_same_selects() throws IOException {
         // GIVEN
         Class<?> classUnderTest = SelectIssues.class;
 
@@ -414,7 +409,7 @@ public class AnalyzeSqlTest {
 
     @Test
     public void
-    should_alert_if_n_plus_one_issue_is_detected() {
+    should_alert_if_n_plus_one_issue_is_detected() throws IOException {
 
         // GIVEN
         Class<?> testClass = NplusOneIssues.class;
@@ -431,6 +426,7 @@ public class AnalyzeSqlTest {
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
+    @DisableLikeWithLeadingWildcard
     public static class SelectWithWildcard extends SqlTestBase {
 
         public static class FileWriterBuilder implements WriterFactory {
@@ -454,7 +450,7 @@ public class AnalyzeSqlTest {
 
     @Test
     public void
-    should_alert_if_select_containing_like_with_percentage_leading_wildcard() {
+    should_alert_if_select_containing_like_with_percentage_leading_wildcard() throws IOException {
 
         // GIVEN
         Class<?> testClass = SelectWithWildcard.class;
@@ -463,7 +459,7 @@ public class AnalyzeSqlTest {
         PrintableResult printableResult = testResult(testClass);
 
         // THEN
-        assertThat(printableResult.failureCount()).isZero();
+        assertThat(printableResult.failureCount()).isOne();
         assertThat(getFileContent(WILDCARD_SELECT))
                 .contains("Like with leading wildcard detected (% or _)");
 
@@ -493,7 +489,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_alert_if_no_bind_parameters_where_found() {
+    public void should_alert_if_no_bind_parameters_where_found() throws IOException {
 
         // GIVEN
         Class<?> testClass = InsertWithoutBindParameters.class;
