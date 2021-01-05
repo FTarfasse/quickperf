@@ -264,7 +264,10 @@ public class AnalyzeSqlTest {
         assertThat(getFileContent(DELETE_FILE_PATH))
                 .contains("[QUICK PERF] SQL Analyzis:")
                 .contains("SQL EXECUTIONS: 1")
-                .contains("DELETE: 1");
+                .contains("DELETE: 1")
+                .contains("delete")
+                .contains("from")
+                .contains("Book");
     }
 
     @RunWith(QuickPerfJUnitRunner.class)
@@ -312,7 +315,7 @@ public class AnalyzeSqlTest {
     }
 
     @Test
-    public void should_display_max_query_execution_time()throws IOException {
+    public void should_display_max_query_execution_time() throws IOException {
         // GIVEN
         Class<?> classUnderTest = SqlExecutions_are_properly_analyzed.class;
 
