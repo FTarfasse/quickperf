@@ -11,6 +11,7 @@
 
 package org.quickperf.sql.execution;
 
+import net.ttddyy.dsproxy.QueryInfo;
 import net.ttddyy.dsproxy.QueryType;
 import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
@@ -25,6 +26,8 @@ import org.quickperf.writer.PrintWriterBuilder;
 import org.quickperf.writer.WriterFactory;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql, SqlAnalysis> {
@@ -36,7 +39,6 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
     @Override
     public PerfIssue verifyPerfIssue(AnalyzeSql annotation, SqlAnalysis sqlAnalysis) {
-
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
         StringBuilder sqlReport = new StringBuilder();
 
@@ -50,13 +52,11 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             sqlReport.append(buildDeleteMessage(sqlExecutions));
             sqlReport.append(getMaxTime(sqlExecutions));
             sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
-            sqlReport.append(numberOfQueries(sqlExecutions) + sqlExecutions.toString());
+            sqlReport.append(displayQueries(sqlExecutions));
             pw.printf(annotation.format(), sqlReport);
-
         }
 
         return PerfIssue.NONE;
-
     }
 
     private String buildSelectMessages(SqlAnalysis sqlAnalysis) {
@@ -90,27 +90,38 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         return mes;
     }
 
-    private String numberOfQueries(SqlExecutions sqlExecutions) {
-        if (sqlExecutions.getNumberOfExecutions() == 0) {
-            return "";
+    private String displayQueries(SqlExecutions sqlExecutions) {
+        if (sqlExecutions.getNumberOfExecutions() == 0) return "";
+
+        List<String> queriesList = new ArrayList<>();
+        for (SqlExecution execution : sqlExecutions) {
+            for (QueryInfo query : execution.getQueries()) {
+                queriesList.add(query.getQuery());
+            }
         }
-        return sqlExecutions.getNumberOfExecutions() > 1 ? "QUERIES: " + System.lineSeparator() : "QUERY: " + System.lineSeparator();
+        String queries = "";
+        for(String query: queriesList){
+           queries += "    " + query + System.lineSeparator();
+        }
+        // manage plural query / queries
+        return sqlExecutions.getNumberOfExecutions() > 1 ? this.addSeparationString() + "QUERIES: " + System.lineSeparator() + queries
+                : this.addSeparationString() + "QUERY: " + System.lineSeparator() + queries;
     }
 
     private String jdbcExecutions(SqlExecutions sqlExecutions) {
-        return "SQL EXECUTIONS: " + sqlExecutions.getNumberOfExecutions() + System.lineSeparator();
+        return this.addSeparationString() + "SQL EXECUTIONS: " + sqlExecutions.getNumberOfExecutions() + System.lineSeparator();
     }
 
     private String buildUpdateCountReport(long updateCount) {
         if (updateCount > 0) {
-            return "UPDATE: " + updateCount + System.lineSeparator();
+            return this.addSeparationString() + "UPDATE: " + updateCount + System.lineSeparator();
         }
         return "";
     }
 
     private String buildInsertCountReport(long insertCount) {
         if (insertCount > 0) {
-            return "INSERT: " + insertCount + System.lineSeparator();
+            return this.addSeparationString() + "INSERT: " + insertCount + System.lineSeparator();
         }
         return "";
     }
@@ -165,14 +176,14 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
     private String buildSelectCountReport(long selectCount) {
         if (selectCount > 0) {
-            return "SELECT: " + selectCount + System.lineSeparator();
+            return this.addSeparationString() + "SELECT: " + selectCount + System.lineSeparator();
         }
         return "";
     }
 
     private String buildDeleteCountReport(long deleteCount) {
         if (deleteCount > 0) {
-            return "DELETE: " + deleteCount + System.lineSeparator();
+            return this.addSeparationString() + "DELETE: " + deleteCount + System.lineSeparator();
         }
         return "";
     }
@@ -194,7 +205,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
         }
 
-        return "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
+        return this.addSeparationString() + "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
     }
 
     private boolean checkIfWildcard(SqlExecutions sqlExecutions) {
@@ -203,5 +214,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
     private boolean checkIfBindParameters(SqlExecutions sqlExecutions) {
         return !AllParametersAreBoundExtractor.INSTANCE.extractPerfMeasureFrom(sqlExecutions).getValue();
+    }
+
+    private String addSeparationString() {
+        return "------------------------------------------------------------------------------------------------------------------------" + System.lineSeparator();
+
     }
 }

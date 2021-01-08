@@ -36,7 +36,7 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
     }
 
     public SqlExecutions filterByQueryType(QueryType queryType) {
-        SqlExecutions newSqlExecutions = new SqlExecutions();
+        SqlExecutions filteredSqlExecutions = new SqlExecutions();
 
         for (SqlExecution execution : this.sqlExecutions) {
             List<QueryInfo> queries = new ArrayList<>();
@@ -48,10 +48,9 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
                     queries.add(query);
                 }
             }
-            if(added) newSqlExecutions.add(execution.getExecutionInfo(), queries);
+            if(added) filteredSqlExecutions.add(execution.getExecutionInfo(), queries);
         }
-
-        return newSqlExecutions;
+        return filteredSqlExecutions;
     }
 
     @Override
