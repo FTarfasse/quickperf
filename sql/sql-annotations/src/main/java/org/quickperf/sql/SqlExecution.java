@@ -265,6 +265,10 @@ public class SqlExecution implements Externalizable {
     	return executionInfo.getElapsedTime();
     }
 
+    public ExecutionInfo getExecutionInfo() {
+        return executionInfo;
+    }
+
     public boolean withStatement() {
         StatementType statementType = executionInfo.getStatementType();
         return StatementType.STATEMENT.equals(statementType);

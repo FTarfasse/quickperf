@@ -44,21 +44,10 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
             sqlReport.append(jdbcExecutions(sqlExecutions));
-
-            long selectCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.SELECT);
-            sqlReport.append(buildSelectCountReport(selectCount));
             sqlReport.append(buildSelectMessages(sqlAnalysis));
-
-            // TODO: annotation analyzing the Hibernate sequence call executed in insert statements
-            long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
-            sqlReport.append(buildInsertCountReport(insertCount));
-
-            long updateCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.UPDATE);
-            sqlReport.append(buildUpdateCountReport(updateCount));
-
-            long deleteCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE);
-            sqlReport.append(buildDeleteCountReport(deleteCount));
-
+            sqlReport.append(buildInsertMessage(sqlExecutions)); // TODO: annotation analyzing the Hibernate sequence call executed in insert statements
+            sqlReport.append(buildUpdateMessage(sqlExecutions));
+            sqlReport.append(buildDeleteMessage(sqlExecutions));
             sqlReport.append(getMaxTime(sqlExecutions));
             sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
             sqlReport.append(numberOfQueries(sqlExecutions) + sqlExecutions.toString());
@@ -72,15 +61,21 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
     private String buildSelectMessages(SqlAnalysis sqlAnalysis) {
         String mes = "";
+        if (sqlAnalysis.getSqlExecutions().retrieveQueryNumberOfType(QueryType.SELECT) == 0) return mes;
         SelectAnalysis selectAnalysis = sqlAnalysis.getSelectAnalysis();
+        SqlExecutions selectExecutions = sqlAnalysis.getSqlExecutions().filterByQueryType(QueryType.SELECT);
+        long selectCount = sqlAnalysis.getSqlExecutions().retrieveQueryNumberOfType(QueryType.SELECT);
+
+        mes += buildSelectCountReport(selectCount);
 
         if (selectAnalysis.hasSameSelects()) {
+            // mes += "* Same SELECT statements" + System.lineSeparator();
             mes += "* Same SELECT statements" + System.lineSeparator();
         }
-        if (checkIfWildcard(sqlAnalysis.getSqlExecutions())) {
+        if (checkIfWildcard(selectExecutions)) {
             mes += "* Like with leading wildcard detected (% or _)" + System.lineSeparator();
         }
-        if (checkIfBindParameters(sqlAnalysis.getSqlExecutions())) {
+        if (checkIfBindParameters(selectExecutions)) {
             mes += "* Query without bind parameters" + System.lineSeparator();
         }
 
@@ -118,6 +113,54 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             return "INSERT: " + insertCount + System.lineSeparator();
         }
         return "";
+    }
+
+    private String buildInsertMessage(SqlExecutions sqlExecutions) {
+
+        if (sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT) == 0) return "";
+
+        String mes = "";
+        long insertCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.INSERT);
+        mes += buildInsertCountReport(insertCount);
+        SqlExecutions insertExecutions = sqlExecutions.filterByQueryType(QueryType.INSERT);
+
+        if (checkIfBindParameters(insertExecutions)) {
+            mes += "* Query without bind parameters" + System.lineSeparator();
+        }
+
+        return mes;
+    }
+
+    private String buildUpdateMessage(SqlExecutions sqlExecutions) {
+
+        if (sqlExecutions.retrieveQueryNumberOfType(QueryType.UPDATE) == 0) return "";
+
+        String mes = "";
+        SqlExecutions updateExecutions = sqlExecutions.filterByQueryType(QueryType.UPDATE);
+        long updateCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.UPDATE);
+        mes += buildUpdateCountReport(updateCount);
+
+        if (checkIfBindParameters(updateExecutions)) {
+            mes += "* Query without bind parameters" + System.lineSeparator();
+        }
+
+        return mes;
+    }
+
+    private String buildDeleteMessage(SqlExecutions sqlExecutions) {
+
+        if (sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE) == 0) return "";
+
+        String mes = "";
+        SqlExecutions updateExecutions = sqlExecutions.filterByQueryType(QueryType.DELETE);
+        long deleteCount = sqlExecutions.retrieveQueryNumberOfType(QueryType.DELETE);
+        mes += buildDeleteCountReport(deleteCount);
+
+        if (checkIfBindParameters(updateExecutions)) {
+            mes += "* Query without bind parameters" + System.lineSeparator();
+        }
+
+        return mes;
     }
 
     private String buildSelectCountReport(long selectCount) {
