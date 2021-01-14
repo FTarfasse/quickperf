@@ -51,8 +51,8 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             sqlReport.append(buildUpdateMessage(sqlExecutions));
             sqlReport.append(buildDeleteMessage(sqlExecutions));
             sqlReport.append(getMaxTime(sqlExecutions));
-            sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
             sqlReport.append(displayQueries(sqlExecutions));
+            sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
             pw.printf(annotation.format(), sqlReport);
         }
 
@@ -69,14 +69,13 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         mes += buildSelectCountReport(selectCount);
 
         if (selectAnalysis.hasSameSelects()) {
-            // mes += "* Same SELECT statements" + System.lineSeparator();
-            mes += "* Same SELECT statements" + System.lineSeparator();
+            mes += "- Same SELECT statements" + System.lineSeparator();
         }
         if (checkIfWildcard(selectExecutions)) {
-            mes += "* Like with leading wildcard detected (% or _)" + System.lineSeparator();
+            mes += "- Like with leading wildcard detected (% or _)" + System.lineSeparator();
         }
         if (checkIfBindParameters(selectExecutions)) {
-            mes += "* Query without bind parameters" + System.lineSeparator();
+            mes += "- Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
@@ -85,7 +84,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
     private String buildNPlusOneMessage(SqlAnalysis sqlAnalysis) {
         String mes = "";
         if (sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().evaluate()) {
-            mes += sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().getSuggestionToFixIt() + System.lineSeparator() + System.lineSeparator();
+            mes += this.addSeparationString() + "HINTS:" + sqlAnalysis.getSelectAnalysis().getSameSelectTypesWithDifferentParamValues().getSuggestionToFixIt();
         }
         return mes;
     }
@@ -101,7 +100,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         }
         String queries = "";
         for(String query: queriesList){
-           queries += "    " + query + System.lineSeparator();
+           queries += "- " + query + System.lineSeparator();
         }
         // manage plural query / queries
         return sqlExecutions.getNumberOfExecutions() > 1 ? this.addSeparationString() + "QUERIES: " + System.lineSeparator() + queries
@@ -136,7 +135,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         SqlExecutions insertExecutions = sqlExecutions.filterByQueryType(QueryType.INSERT);
 
         if (checkIfBindParameters(insertExecutions)) {
-            mes += "* Query without bind parameters" + System.lineSeparator();
+            mes += "- Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
@@ -152,7 +151,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         mes += buildUpdateCountReport(updateCount);
 
         if (checkIfBindParameters(updateExecutions)) {
-            mes += "* Query without bind parameters" + System.lineSeparator();
+            mes += "- Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
@@ -168,7 +167,7 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
         mes += buildDeleteCountReport(deleteCount);
 
         if (checkIfBindParameters(updateExecutions)) {
-            mes += "* Query without bind parameters" + System.lineSeparator();
+            mes += "- Query without bind parameters" + System.lineSeparator();
         }
 
         return mes;
