@@ -51,6 +51,12 @@ public class SqlExecution implements Externalizable {
         }
     }
 
+    public SqlExecution(ExecutionInfo executionInfo, List<QueryInfo> queries, long columnCount) {
+        this.executionInfo = executionInfo;
+        this.queries = queries;
+        this.columnCount = columnCount;
+    }
+
     private boolean atLeastOneSelect(List<QueryInfo> queries) {
         QueryTypeRetriever queryTypeRetriever = QueryTypeRetriever.INSTANCE;
         for (QueryInfo query : queries) {

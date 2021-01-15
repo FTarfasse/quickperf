@@ -35,6 +35,13 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
         sqlExecutions.addLast(sqlExecution);
     }
 
+    // avoid duplicate call to retrieveNumberOfReturnedColumns within SqlExecution constructor
+    // in add method
+    public void include(ExecutionInfo executionInfo, List<QueryInfo> queries){
+        SqlExecution sqlExecution = new SqlExecution(executionInfo, queries, 0);
+        sqlExecutions.addLast(sqlExecution);
+    }
+
     public SqlExecutions filterByQueryType(QueryType queryType) {
         SqlExecutions filteredSqlExecutions = new SqlExecutions();
 
@@ -48,7 +55,8 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
                     queries.add(query);
                 }
             }
-            if(added) filteredSqlExecutions.add(execution.getExecutionInfo(), queries);
+            // if(added) filteredSqlExecutions.add(execution.getExecutionInfo(), queries);
+            if(added) filteredSqlExecutions.include(execution.getExecutionInfo(), queries);
         }
         return filteredSqlExecutions;
     }
