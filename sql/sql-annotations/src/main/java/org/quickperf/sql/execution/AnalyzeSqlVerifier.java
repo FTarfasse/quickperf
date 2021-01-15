@@ -46,11 +46,11 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
             SqlExecutions sqlExecutions = sqlAnalysis.getSqlExecutions();
 
             sqlReport.append(jdbcExecutions(sqlExecutions));
+            sqlReport.append(getMaxTime(sqlExecutions));
             sqlReport.append(buildSelectMessages(sqlAnalysis));
             sqlReport.append(buildInsertMessage(sqlExecutions)); // TODO: annotation analyzing the Hibernate sequence call executed in insert statements
             sqlReport.append(buildUpdateMessage(sqlExecutions));
             sqlReport.append(buildDeleteMessage(sqlExecutions));
-            sqlReport.append(getMaxTime(sqlExecutions));
             sqlReport.append(displayQueries(sqlExecutions));
             sqlReport.append(buildNPlusOneMessage(sqlAnalysis));
             pw.printf(annotation.format(), sqlReport);
@@ -204,7 +204,8 @@ public class AnalyzeSqlVerifier implements VerifiablePerformanceIssue<AnalyzeSql
 
         }
 
-        return this.addSeparationString() + "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
+        // return this.addSeparationString() + "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
+        return "MAX TIME: " + new ExecutionTime(maxExecutionTime, TimeUnit.MILLISECONDS).toString() + System.lineSeparator();
     }
 
     private boolean checkIfWildcard(SqlExecutions sqlExecutions) {
