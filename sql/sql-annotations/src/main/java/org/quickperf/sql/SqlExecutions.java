@@ -24,7 +24,7 @@ import org.quickperf.sql.update.columns.NumberOfUpdatedColumnsStatistics;
 import java.io.Serializable;
 import java.util.*;
 
-public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecordIfPerfIssue, Serializable {
+public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecordIfPerfIssue, Serializable, Cloneable {
 
     public static final SqlExecutions NONE = new SqlExecutions();
 
@@ -33,6 +33,32 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
     public void add(ExecutionInfo execInfo, List<QueryInfo> queries) {
         SqlExecution sqlExecution = new SqlExecution(execInfo, queries);
         sqlExecutions.addLast(sqlExecution);
+    }
+
+    // avoid duplicate call to retrieveNumberOfReturnedColumns within SqlExecution constructor
+    // in add method
+    public void include(ExecutionInfo executionInfo, List<QueryInfo> queries){
+        SqlExecution sqlExecution = new SqlExecution(executionInfo, queries, 0);
+        sqlExecutions.addLast(sqlExecution);
+    }
+
+    public SqlExecutions filterByQueryType(QueryType queryType) {
+        SqlExecutions filteredSqlExecutions = new SqlExecutions();
+
+        for (SqlExecution execution : this.sqlExecutions) {
+            List<QueryInfo> queries = new ArrayList<>();
+            boolean added = false;
+            for (QueryInfo query : execution.getQueries()) {
+                if (queryType.equals(QueryTypeRetriever.INSTANCE.typeOf(query))) {
+                    // if type corresponds in original add to copy
+                    added = true;
+                    queries.add(query);
+                }
+            }
+            // if(added) filteredSqlExecutions.add(execution.getExecutionInfo(), queries);
+            if(added) filteredSqlExecutions.include(execution.getExecutionInfo(), queries);
+        }
+        return filteredSqlExecutions;
     }
 
     @Override
@@ -73,7 +99,7 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
                 QueryTypeRetriever queryTypeRetriever = QueryTypeRetriever.INSTANCE;
                 if (queryTypeRetriever.typeOf(query) == QueryType.UPDATE) {
                     long updatedColumnCount = countUpdatedColumn(query.getQuery());
-                    if(minColumnCount == 0 || updatedColumnCount < minColumnCount) {
+                    if (minColumnCount == 0 || updatedColumnCount < minColumnCount) {
                         minColumnCount = updatedColumnCount;
                     }
                     if (updatedColumnCount > maxColumnCount) {
@@ -99,15 +125,15 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
 
     /**
      * Examples :
-     *  - "SET isbn = ?, title = ? " returns 2
-     *  - "SET isbn = '123', title = '1 + 1 = 0' " returns 2
+     * - "SET isbn = ?, title = ? " returns 2
+     * - "SET isbn = '123', title = '1 + 1 = 0' " returns 2
      */
     private long countUnquotedEquals(String setClause) {
         boolean inQuote = false;
         long equalCounter = 0;
         for (char c : setClause.toCharArray()) {
             if (c == '\'') {
-               inQuote = !inQuote;
+                inQuote = !inQuote;
             }
             if (!inQuote && c == '=') {
                 equalCounter++;
@@ -131,17 +157,17 @@ public class SqlExecutions implements Iterable<SqlExecution>, ViewablePerfRecord
     public String format(Collection<PerfIssue> perfIssues) {
         String standardFormatting = PerfIssuesFormat.STANDARD.format(perfIssues);
 
-        if(SystemProperties.SIMPLIFIED_SQL_DISPLAY.evaluate()) {
+        if (SystemProperties.SIMPLIFIED_SQL_DISPLAY.evaluate()) {
             return standardFormatting;
         }
 
-        return    standardFormatting
+        return standardFormatting
                 + System.lineSeparator()
                 + System.lineSeparator()
                 + "[JDBC QUERY EXECUTION (executeQuery, executeBatch, ...)]"
                 + System.lineSeparator()
                 + (noJdbcExecution() ? new DataSourceConfig().getMessage()
-                                     : toString());
+                : toString());
     }
 
     private boolean noJdbcExecution() {

@@ -15,6 +15,7 @@ import org.quickperf.issue.PerfIssue;
 import org.quickperf.issue.VerifiablePerformanceIssue;
 import org.quickperf.jvm.annotations.MeasureHeapAllocation;
 import org.quickperf.writer.DefaultWriterFactory;
+import org.quickperf.writer.PrintWriterBuilder;
 import org.quickperf.writer.WriterFactory;
 
 import java.io.PrintWriter;
@@ -33,25 +34,10 @@ public class MeasureHeapAllocationPerfVerifier implements VerifiablePerformanceI
     public PerfIssue verifyPerfIssue(MeasureHeapAllocation annotation, Allocation measuredAllocation) {
         String allocationAsString = byteAllocationMeasureFormatter.formatAndAppendAllocationInBytes(measuredAllocation);
         Class<? extends WriterFactory> writerFactoryClass = annotation.writerFactory();
-        try (PrintWriter pw = buildPrintWriterFrom(writerFactoryClass)) {
+        try (PrintWriter pw = PrintWriterBuilder.INSTANCE.buildPrintWriterFrom(writerFactoryClass)) {
             pw.printf(annotation.format(), allocationAsString);
         }
         return PerfIssue.NONE;
-    }
-
-    private PrintWriter buildPrintWriterFrom(Class<? extends WriterFactory> writerFactoryClass) {
-        PrintWriter pw;
-        try {
-            WriterFactory writerFactory = writerFactoryClass.getConstructor().newInstance();
-            Writer writer = writerFactory.buildWriter();
-            pw = new PrintWriter(writer);
-        } catch (Exception e) {
-            System.out.printf("Unexpected exception while building the writer factory [%s]\n", writerFactoryClass.getName());
-            e.printStackTrace(System.out);
-            System.out.println("Messages will be sent to System.out");
-            pw = DefaultWriterFactory.SystemOutPrintWriterInstance.INSTANCE.getSystemOutPrintWriter();
-        }
-        return pw;
     }
 
 }

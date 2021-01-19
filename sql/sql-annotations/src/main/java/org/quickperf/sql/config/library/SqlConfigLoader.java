@@ -55,6 +55,7 @@ public class SqlConfigLoader implements QuickPerfConfigLoader {
                 , SqlAnnotationsConfigs.DISABLE_QUERIES_WITHOUT_BIND_PARAMETERS
                 , SqlAnnotationsConfigs.DISABLE_STATEMENTS
                 , SqlAnnotationsConfigs.ENABLE_STATEMENTS
+                , SqlAnnotationsConfigs.ANALYZE_SQL
         );
     }
 
